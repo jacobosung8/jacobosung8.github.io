@@ -1,23 +1,651 @@
-HTML<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My Portfolio</title>
-    <style>
-        body { font-family: sans-serif; max-width: 800px; margin: 40px auto; padding: 0 20px; line-height: 1.6; }
-        h1 { color: #333; }
-        .project-card { border: 1px solid #ddd; padding: 15px; margin-bottom: 10px; border-radius: 8px; }
-    </style>
+  <!-- Meta tags for character encoding and responsive mobile viewing -->
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Jacob Sung | CS Student & Developer</title>
+
+  <style>
+    /* ==========================================================================
+       1. GLOBAL STYLES & DARK THEME VARIABLES
+       ========================================================================== */
+    :root {
+      /* Always-dark color scheme */
+      --bg-primary: #0b0f19;      /* Main page background (deep dark blue-black) */
+      --bg-card: #111827;         /* Container/Card background */
+      --border-color: #1f2937;    /* Subtle borders for cards and dividers */
+      --text-primary: #f9fafb;    /* Main heading text color (bright white/gray) */
+      --text-secondary: #9ca3af;  /* Subtitle and body text color (soft gray) */
+      --accent-color: #60a5fa;    /* Primary highlight color (electric blue) */
+      --accent-light: rgba(96, 165, 250, 0.15); /* Light blue tint for background pills */
+      --accent-hover: #93c5fd;    /* Hover color for interactive buttons */
+      --tag-bg: #1e293b;          /* Tech stack badge background */
+      --nav-bg: rgba(11, 15, 25, 0.85); /* Semi-transparent background for sticky nav */
+      --card-shadow: 0 4px 20px rgba(0, 0, 0, 0.4); /* Elevation shadow for cards */
+    }
+
+    /* Reset default browser margins and set default smooth scrolling */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      scroll-behavior: smooth;
+    }
+
+    body {
+      background-color: var(--bg-primary); /* Apply dark background */
+      color: var(--text-primary);         /* Apply light text color */
+      line-height: 1.6;
+      padding-top: 80px;                  /* Space so fixed top navbar doesn't cover content */
+      overflow-x: hidden;                 /* Prevent horizontal scrollbars */
+    }
+
+    /* ==========================================================================
+       2. INTERACTIVE CANVAS BACKGROUND
+       ========================================================================== */
+    /* Canvas element placed behind all content for particle animations */
+    #bg-canvas {
+      position: fixed; /* Fixed position so it stays during scroll */
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 0;      /* Behind everything else */
+      pointer-events: none; /* Allows mouse clicks to pass right through to content below */
+    }
+
+    /* Wrap all main content in a container above the canvas layer */
+    .content-wrapper {
+      position: relative;
+      z-index: 1; /* Sits above the background canvas */
+    }
+
+    /* ==========================================================================
+       3. NAVIGATION BAR
+       ========================================================================== */
+    /* Fixed sticky bar at top of screen */
+    nav {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      background: var(--nav-bg);
+      backdrop-filter: blur(8px); /* Blur effect under navbar */
+      border-bottom: 1px solid var(--border-color);
+      z-index: 100;               /* Keeps nav bar on top of all page content */
+      padding: 1rem 2rem;
+    }
+
+    /* Center alignment container for navigation bar */
+    .nav-container {
+      max-width: 900px;
+      margin: 0 auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    /* Logo link on top left */
+    .nav-logo {
+      font-weight: 700;
+      font-size: 1.1rem;
+      color: var(--text-primary);
+      text-decoration: none;
+    }
+
+    /* Container for navigation links */
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 1.5rem;
+    }
+
+    /* Individual navigation links */
+    .nav-links a {
+      color: var(--text-secondary);
+      text-decoration: none;
+      font-size: 0.95rem;
+      font-weight: 500;
+      transition: color 0.2s ease;
+    }
+
+    /* Hover effect for navigation links */
+    .nav-links a:hover {
+      color: var(--accent-color);
+    }
+
+    /* ==========================================================================
+       4. PAGE LAYOUT & HERO SECTION
+       ========================================================================== */
+    /* Central container that keeps page content nicely aligned and bound in width */
+    .container {
+      max-width: 850px;
+      margin: 0 auto;
+      padding: 2rem 1.5rem;
+    }
+
+    /* Top introduction section */
+    .hero {
+      padding: 3rem 0;
+    }
+
+    /* Small pill tag above hero title */
+    .hero-badge {
+      display: inline-block;
+      background-color: var(--accent-light);
+      color: var(--accent-color);
+      font-size: 0.85rem;
+      font-weight: 600;
+      padding: 0.35rem 0.8rem;
+      border-radius: 20px;
+      margin-bottom: 1rem;
+    }
+
+    /* Large title heading */
+    .hero h1 {
+      font-size: 3rem;
+      font-weight: 800;
+      line-height: 1.2;
+      margin-bottom: 1rem;
+      letter-spacing: -0.02em;
+    }
+
+    /* Short introduction paragraph */
+    .hero p {
+      font-size: 1.2rem;
+      color: var(--text-secondary);
+      max-width: 650px;
+      margin-bottom: 2rem;
+    }
+
+    /* Flex container holding call-to-action buttons */
+    .hero-buttons {
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap; /* Allows buttons to wrap on small mobile screens */
+    }
+
+    /* Base button styling */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background-color: var(--accent-color);
+      color: #0f172a; /* Dark text for high contrast on light blue button */
+      padding: 0.75rem 1.5rem;
+      border-radius: 8px;
+      text-decoration: none;
+      font-weight: 600;
+      box-shadow: var(--card-shadow);
+      transition: background-color 0.2s ease, transform 0.2s ease;
+    }
+
+    /* Hover effect on primary buttons */
+    .btn:hover {
+      background-color: var(--accent-hover);
+      transform: translateY(-2px); /* Slight hover pop effect */
+    }
+
+    /* Secondary outlined button style */
+    .btn-outline {
+      background-color: transparent;
+      color: var(--text-primary);
+      border: 1px solid var(--border-color);
+    }
+
+    /* Hover effect on outlined buttons */
+    .btn-outline:hover {
+      border-color: var(--accent-color);
+      color: var(--accent-color);
+      background-color: var(--accent-light);
+    }
+
+    /* ==========================================================================
+       5. SECTION TITLES & SKILLS
+       ========================================================================== */
+    section {
+      margin: 4rem 0;
+    }
+
+    /* Section title with automatic decorative divider line extending to the right */
+    .section-title {
+      font-size: 1.75rem;
+      font-weight: 700;
+      margin-bottom: 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .section-title::after {
+      content: "";
+      flex: 1;
+      height: 1px;
+      background-color: var(--border-color);
+    }
+
+    /* Grid wrap for technical skill badges */
+    .skills-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.6rem;
+    }
+
+    /* Individual technical skill pill */
+    .skill-badge {
+      background-color: var(--tag-bg);
+      color: var(--text-primary);
+      padding: 0.4rem 0.9rem;
+      border-radius: 6px;
+      font-size: 0.9rem;
+      font-weight: 500;
+      border: 1px solid var(--border-color);
+    }
+
+    /* ==========================================================================
+       6. PROJECTS SECTION
+       ========================================================================== */
+    .projects-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 1.5rem;
+    }
+
+    /* Individual project card layout */
+    .project-card {
+      background-color: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 1.75rem;
+      box-shadow: var(--card-shadow);
+      transition: border-color 0.2s ease, transform 0.2s ease;
+    }
+
+    .project-card:hover {
+      border-color: var(--accent-color);
+      transform: translateY(-3px);
+    }
+
+    .project-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 0.75rem;
+    }
+
+    .project-title {
+      font-size: 1.25rem;
+      font-weight: 700;
+    }
+
+    .project-desc {
+      color: var(--text-secondary);
+      font-size: 0.95rem;
+      margin-bottom: 1.25rem;
+    }
+
+    /* Container for small technology tags inside project card */
+    .tech-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-bottom: 1.25rem;
+    }
+
+    .tech-tag {
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--accent-color);
+      background-color: var(--accent-light);
+      padding: 0.2rem 0.6rem;
+      border-radius: 4px;
+    }
+
+    .project-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+      color: var(--accent-color);
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 0.9rem;
+    }
+
+    .project-link:hover {
+      text-decoration: underline;
+    }
+
+    /* ==========================================================================
+       7. TIMELINE / JOURNEY SECTION
+       ========================================================================== */
+    /* Vertical line forming the timeline backbone */
+    .timeline {
+      position: relative;
+      padding-left: 1.5rem;
+      border-left: 2px solid var(--border-color);
+    }
+
+    .timeline-item {
+      position: relative;
+      margin-bottom: 2rem;
+    }
+
+    .timeline-item:last-child {
+      margin-bottom: 0;
+    }
+
+    /* Glowing circle marker on timeline */
+    .timeline-dot {
+      position: absolute;
+      left: -1.95rem;
+      top: 0.35rem;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background-color: var(--accent-color);
+      border: 3px solid var(--bg-primary);
+    }
+
+    .timeline-date {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--accent-color);
+      margin-bottom: 0.25rem;
+    }
+
+    .timeline-role {
+      font-size: 1.1rem;
+      font-weight: 700;
+    }
+
+    .timeline-company {
+      color: var(--text-secondary);
+      font-size: 0.95rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .timeline-desc {
+      color: var(--text-secondary);
+      font-size: 0.95rem;
+    }
+
+    /* ==========================================================================
+       8. FOOTER
+       ========================================================================== */
+    footer {
+      text-align: center;
+      padding: 3rem 0;
+      border-top: 1px solid var(--border-color);
+      color: var(--text-secondary);
+      font-size: 0.9rem;
+    }
+
+    /* Mobile adjustments */
+    @media (max-width: 640px) {
+      .hero h1 { font-size: 2.25rem; }
+      nav { padding: 1rem; }
+      .hero-buttons { flex-direction: column; }
+    }
+  </style>
 </head>
 <body>
-    <h1>Hi, I'm Jacob Sung</h1>
-    <p>Welcome to my portfolio website hosted on GitHub Pages!</p>
 
-    <h2>Projects</h2>
-    <div class="project-card">
-        <h3>My First Project</h3>
-        <p>Description of a project built using Python or web technologies.</p>
+  <!-- Background Interactive Canvas (Particles) -->
+  <canvas id="bg-canvas"></canvas>
+
+  <!-- Main Content Wrapper (Ensures text sits above background canvas) -->
+  <div class="content-wrapper">
+
+    <!-- Sticky Navigation Bar -->
+    <nav>
+      <div class="nav-container">
+        <!-- Logo -->
+        <a href="#" class="nav-logo">Jacob Sung</a>
+        <!-- Nav Links -->
+        <div class="nav-links">
+          <a href="#about">About</a>
+          <a href="#projects">Projects</a>
+          <a href="#experience">Journey</a>
+        </div>
+      </div>
+    </nav>
+
+    <!-- Central Page Container -->
+    <div class="container">
+
+      <!-- Hero Section -->
+      <section class="hero" id="about">
+        <span class="hero-badge">CS Student @ UofT Mississauga</span>
+        <h1>Computer Science Student & Software Developer</h1>
+        <p>
+          Hi, I'm Jacob! I build web applications, software tools, and interactive projects.
+          Focused on full-stack development, software architecture, and game engineering.
+        </p>
+
+        <!-- Interactive Link Buttons -->
+        <div class="hero-buttons">
+          <a href="#projects" class="btn">View My Work</a>
+          <a href="https://github.com/jacobosung8" target="_blank" class="btn btn-outline">GitHub ↗</a>
+
+          <!-- LinkedIn Link (Replace '#' inside href="..." with your real link when ready) -->
+          <a href="#" target="_blank" class="btn btn-outline">LinkedIn ↗</a>
+
+          <!-- Resume Link (Replace '#' inside href="..." with your drive or file link) -->
+          <a href="#" target="_blank" class="btn btn-outline">Resume 📄</a>
+        </div>
+      </section>
+
+      <!-- Technical Skills Section -->
+      <section id="skills">
+        <h2 class="section-title">Technical Skills</h2>
+        <div class="skills-grid">
+          <span class="skill-badge">Python</span>
+          <span class="skill-badge">JavaScript</span>
+          <span class="skill-badge">HTML5 & CSS3</span>
+          <span class="skill-badge">Git & GitHub</span>
+          <span class="skill-badge">C / C++</span>
+          <span class="skill-badge">Luau / Roblox Studio</span>
+        </div>
+      </section>
+
+      <!-- Featured Projects Section -->
+      <section id="projects">
+        <h2 class="section-title">Featured Projects</h2>
+        <div class="projects-grid">
+
+          <!-- Project Card 1 -->
+          <div class="project-card">
+            <div class="project-header">
+              <h3 class="project-title">Personal Portfolio Website</h3>
+            </div>
+            <p class="project-desc">
+              A responsive developer portfolio website featuring interactive background effects, modern CSS typography, structured timeline components, and GitHub Pages deployment.
+            </p>
+            <div class="tech-tags">
+              <span class="tech-tag">HTML5</span>
+              <span class="tech-tag">CSS3</span>
+              <span class="tech-tag">JavaScript</span>
+              <span class="tech-tag">GitHub Pages</span>
+            </div>
+            <a href="https://github.com/jacobosung8/jacobosung8.github.io" target="_blank" class="project-link">View Repository ↗</a>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- Journey / Experience Section -->
+      <section id="experience">
+        <h2 class="section-title">My Journey</h2>
+        <div class="timeline">
+
+          <!-- Timeline Entry 1 -->
+          <div class="timeline-item">
+            <div class="timeline-dot"></div>
+            <div class="timeline-date">2026 - Present</div>
+            <div class="timeline-role">Honours Bachelor of Science in Computer Science</div>
+            <div class="timeline-company">University of Toronto Mississauga</div>
+            <p class="timeline-desc">
+              Focusing on computer science fundamentals, software design, discrete mathematics, and web architecture.
+            </p>
+          </div>
+
+          <!-- Timeline Entry 2 -->
+          <div class="timeline-item">
+            <div class="timeline-dot"></div>
+            <div class="timeline-date">September 2025 - Present</div>
+            <div class="timeline-role">Specialized Basketball & Rock Climbing Instructor</div>
+            <div class="timeline-company">Town of Oakville</div>
+            <p class="timeline-desc">
+              Instructing youth programs, organizing structured sessions, and leading sports development programs.
+            </p>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- Footer -->
+      <footer>
+        <p>© 2026 Jacob Sung. Designed & Built with HTML, CSS, and JS.</p>
+      </footer>
+
     </div>
+  </div>
+
+  <!-- ==========================================================================
+     9. JAVASCRIPT: INTERACTIVE BACKGROUND PARTICLES
+     ========================================================================== -->
+  <script>
+    // Get reference to canvas element and 2D drawing context
+    const canvas = document.getElementById('bg-canvas');
+    const ctx = canvas.getContext('2d');
+
+    // Resize canvas to fill entire viewport window dynamically
+    function resizeCanvas() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+    resizeCanvas();
+    window.addEventListener('resize', resizeCanvas); // Adjust canvas when browser resizes
+
+    // Track mouse position across screen
+    const mouse = {
+      x: null,
+      y: null,
+      radius: 120 // Interaction area radius around mouse cursor
+    };
+
+    // Update mouse position on move
+    window.addEventListener('mousemove', (event) => {
+      mouse.x = event.x;
+      mouse.y = event.y;
+    });
+
+    // Reset mouse coordinates when mouse leaves window
+    window.addEventListener('mouseout', () => {
+      mouse.x = null;
+      mouse.y = null;
+    });
+
+    // Particle class definition
+    class Particle {
+      constructor() {
+        this.x = Math.random() * canvas.width;            // Random initial X coordinate
+        this.y = Math.random() * canvas.height;           // Random initial Y coordinate
+        this.size = Math.random() * 2 + 1;                 // Random radius size (1px to 3px)
+        this.baseX = this.x;                               // Original anchor X
+        this.baseY = this.y;                               // Original anchor Y
+        this.vx = (Math.random() - 0.5) * 0.5;             // Slow X velocity floating movement
+        this.vy = (Math.random() - 0.5) * 0.5;             // Slow Y velocity floating movement
+        this.color = 'rgba(96, 165, 250, ' + (Math.random() * 0.4 + 0.1) + ')'; // Soft blue color with opacity
+      }
+
+      // Draw particle onto canvas
+      draw() {
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+        ctx.fillStyle = this.color;
+        ctx.fill();
+      }
+
+      // Update particle position & mouse interaction physics
+      update() {
+        // Slowly float across canvas
+        this.x += this.vx;
+        this.y += this.vy;
+
+        // Wrap around canvas edges if particles float off-screen
+        if (this.x < 0) this.x = canvas.width;
+        if (this.x > canvas.width) this.x = 0;
+        if (this.y < 0) this.y = canvas.height;
+        if (this.y > canvas.height) this.y = 0;
+
+        // Check distance between particle and mouse cursor
+        if (mouse.x !== null && mouse.y !== null) {
+          let dx = mouse.x - this.x;
+          let dy = mouse.y - this.y;
+          let distance = Math.sqrt(dx * dx + dy * dy);
+
+          // If particle is close to mouse, push particle away
+          if (distance < mouse.radius) {
+            let force = (mouse.radius - distance) / mouse.radius;
+            let directionX = dx / distance;
+            let directionY = dy / distance;
+
+            // Repel particle away from mouse
+            this.x -= directionX * force * 5;
+            this.y -= directionY * force * 5;
+          }
+        }
+      }
+    }
+
+    // Create array of particles
+    const particlesArray = [];
+    const particleCount = 60; // Total count of floating background particles
+
+    for (let i = 0; i < particleCount; i++) {
+      particlesArray.push(new Particle());
+    }
+
+    // Continuous animation loop
+    function animate() {
+      // Clear canvas on every frame before redrawing
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // Draw faint connecting lines between close particles
+      for (let a = 0; a < particlesArray.length; a++) {
+        for (let b = a; b < particlesArray.length; b++) {
+          let dx = particlesArray[a].x - particlesArray[b].x;
+          let dy = particlesArray[a].y - particlesArray[b].y;
+          let dist = Math.sqrt(dx * dx + dy * dy);
+
+          // Draw line if distance between two particles is less than 100px
+          if (dist < 100) {
+            ctx.beginPath();
+            ctx.strokeStyle = 'rgba(96, 165, 250, ' + (0.15 - dist / 1000) + ')';
+            ctx.lineWidth = 0.5;
+            ctx.moveTo(particlesArray[a].x, particlesArray[a].y);
+            ctx.lineTo(particlesArray[b].x, particlesArray[b].y);
+            ctx.stroke();
+          }
+        }
+      }
+
+      // Update and draw each particle
+      for (let i = 0; i < particlesArray.length; i++) {
+        particlesArray[i].update();
+        particlesArray[i].draw();
+      }
+
+      // Request next frame from browser
+      requestAnimationFrame(animate);
+    }
+
+    // Start animation loop
+    animate();
+  </script>
+
 </body>
 </html>
