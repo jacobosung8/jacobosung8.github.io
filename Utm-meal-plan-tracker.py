@@ -5,7 +5,7 @@ import socketserver
 import threading
 import time
 import webbrowser
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 
 
 # ---------------------------------------------------------------------------
@@ -16,9 +16,13 @@ class MealPlanEngine:
         self.db_name = db_name
         self.init_db()
 
+    def get_connection(self):
+        """Helper to get a thread-safe connection to SQLite."""
+        return sqlite3.connect(self.db_name, check_same_thread=False)
+
     def init_db(self):
         """Initialize database tables for balances, config, and transactions."""
-        conn = sqlite3.connect(self.db_name)
+        conn = self.get_connection()
         cursor = conn.cursor()
 
         # Balance and settings store
@@ -57,7 +61,7 @@ class MealPlanEngine:
         conn.close()
 
     def get_dashboard_data(self):
-        conn = sqlite3.connect(self.db_name)
+        conn = self.get_connection()
         cursor = conn.cursor()
 
         # Fetch current config & balances
@@ -79,8 +83,6 @@ class MealPlanEngine:
         today = date.today()
         term_end = date(2027, 4, 30)
 
-        total_days = max((term_end - today).days, 1)
-
         # Calculate active days on campus based on preferences
         active_days = 0
         current_date = today
@@ -94,21 +96,21 @@ class MealPlanEngine:
         while current_date <= term_end:
             # Exclude winter closure
             if winter_break_start <= current_date <= winter_break_end:
-                current_date = date.fromordinal(current_date.toordinal() + 1)
+                current_date += timedelta(days=1)
                 continue
 
             # Exclude reading week if user leaves campus
             if not include_rw and (reading_week_start <= current_date <= reading_week_end):
-                current_date = date.fromordinal(current_date.toordinal() + 1)
+                current_date += timedelta(days=1)
                 continue
 
             # Exclude weekends if user goes home
             if not stay_weekends and current_date.weekday() >= 5:
-                current_date = date.fromordinal(current_date.toordinal() + 1)
+                current_date += timedelta(days=1)
                 continue
 
             active_days += 1
-            current_date = date.fromordinal(current_date.toordinal() + 1)
+            current_date += timedelta(days=1)
 
         active_days = max(active_days, 1)
 
@@ -132,7 +134,7 @@ class MealPlanEngine:
         }
 
     def update_config(self, basic, flex, weekends, reading_week):
-        conn = sqlite3.connect(self.db_name)
+        conn = self.get_connection()
         cursor = conn.cursor()
         cursor.execute("""
                        UPDATE plan_config
@@ -146,7 +148,7 @@ class MealPlanEngine:
         conn.close()
 
     def add_transaction(self, item, amount, fund_type):
-        conn = sqlite3.connect(self.db_name)
+        conn = self.get_connection()
         cursor = conn.cursor()
 
         # Log transaction
@@ -164,7 +166,7 @@ class MealPlanEngine:
         conn.close()
 
     def delete_transaction(self, tx_id):
-        conn = sqlite3.connect(self.db_name)
+        conn = self.get_connection()
         cursor = conn.cursor()
 
         # Fetch transaction details before deleting to refund
@@ -381,7 +383,7 @@ HTML_PAGE = """<!DOCTYPE html>
             document.getElementById('val-days').innerText = data.active_days_left + ' Active Days Left';
 
             document.getElementById('val-daily').innerText = '$' + data.daily_allowance.toFixed(2) + '/day';
-            document.getElementById('val-daily-split').innerText = `Basic: $${data.daily_basic.toFixed(2)} | Flex: $${data.daily_flex.toFixed(2)}`;
+            document.getElementById('val-daily-split').innerText = 'Basic: $' + data.daily_basic.toFixed(2) + ' \vert{} Flex:$' + data.daily_flex.toFixed(2);
 
             document.getElementById('cfg-basic').value = data.basic_balance;
             document.getElementById('cfg-flex').value = data.flex_balance;
