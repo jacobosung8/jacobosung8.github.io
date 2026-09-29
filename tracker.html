@@ -177,26 +177,64 @@
         </div>
     </div>
 
-    <script>
-        async function fetchDashboard() {
-            const res = await fetch('/api/dashboard');
-            const data = await res.json();
+<script>
+        // Default initial state if localStorage is empty
+        const defaultData = {
+            basic_balance: 2400.00,
+            flex_balance: 450.00,
+            stay_weekends: true,
+            include_reading_week: false,
+            transactions: []
+        };
 
-            document.getElementById('val-total').innerText = '$' + data.total_balance.toFixed(2);
+        // Load data from localStorage
+        function loadState() {
+            const saved = localStorage.getItem('utm_meal_plan_data');
+            return saved ? JSON.parse(saved) : defaultData;
+        }
+
+        // Save data to localStorage
+        function saveState(data) {
+            localStorage.setItem('utm_meal_plan_data', JSON.stringify(data));
+        }
+
+        function calculateActiveDays(stayWeekends, includeReading) {
+            // Calculated for UTM term (e.g. Sept 1 to Dec 20 -> ~111 total days)
+            let totalDays = 111;
+            if (!stayWeekends) totalDays -= 32; // deduct weekends
+            if (!includeReading) totalDays -= 7;  // deduct reading week
+            return Math.max(totalDays, 1);
+        }
+
+        function renderDashboard() {
+            const data = loadState();
+
+            const totalBalance = data.basic_balance + data.flex_balance;
+            const activeDays = calculateActiveDays(data.stay_weekends, data.include_reading_week);
+
+            const dailyTotal = totalBalance / activeDays;
+            const dailyBasic = data.basic_balance / activeDays;
+            const dailyFlex = data.flex_balance / activeDays;
+
+            // Update Header & Summary Cards
+            document.getElementById('val-total').innerText = '$' + totalBalance.toFixed(2);
             document.getElementById('val-basic').innerText = '$' + data.basic_balance.toFixed(2);
             document.getElementById('val-flex').innerText = '$' + data.flex_balance.toFixed(2);
-            document.getElementById('val-days').innerText = data.active_days_left + ' Active Days Left';
+            document.getElementById('val-days').innerText = activeDays + ' Active Days Left';
 
-            document.getElementById('val-daily').innerText = '$' + data.daily_allowance.toFixed(2) + '/day';
-            document.getElementById('val-daily-split').innerText = `Basic: $${data.daily_basic.toFixed(2)} | Flex: $${data.daily_flex.toFixed(2)}`;
+            document.getElementById('val-daily').innerText = '$' + dailyTotal.toFixed(2) + '/day';
+            document.getElementById('val-daily-split').innerText = `Basic: $${dailyBasic.toFixed(2)} | Flex: $${dailyFlex.toFixed(2)}`;
 
-            document.getElementById('cfg-basic').value = data.basic_balance;
-            document.getElementById('cfg-flex').value = data.flex_balance;
+            // Update Form Inputs
+            document.getElementById('cfg-basic').value = data.basic_balance.toFixed(2);
+            document.getElementById('cfg-flex').value = data.flex_balance.toFixed(2);
             document.getElementById('cfg-weekends').checked = data.stay_weekends;
             document.getElementById('cfg-reading').checked = data.include_reading_week;
 
+            // Render Transactions Table
             const tbody = document.getElementById('tx-history');
             tbody.innerHTML = '';
+
             if (data.transactions.length === 0) {
                 tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color:#94a3b8;">No purchases logged yet.</td></tr>';
             } else {
@@ -219,8 +257,8 @@
             }
         }
 
-        async function logPurchase() {
-            const item = document.getElementById('tx-item').value;
+        function logPurchase() {
+            const item = document.getElementById('tx-item').value.trim();
             const amount = parseFloat(document.getElementById('tx-amount').value);
             const type = document.getElementById('tx-type').value;
 
@@ -229,47 +267,71 @@
                 return;
             }
 
-            await fetch('/api/transaction', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ item, amount, fund_type: type })
-            });
+            const data = loadState();
 
+            // Deduct from selected balance
+            if (type === 'Basic') {
+                data.basic_balance = Math.max(0, data.basic_balance - amount);
+            } else {
+                data.flex_balance = Math.max(0, data.flex_balance - amount);
+            }
+
+            // Record transaction
+            const newTx = {
+                id: Date.now(),
+                item: item,
+                amount: amount,
+                type: type,
+                date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+            };
+
+            data.transactions.unshift(newTx); // add to top of list
+            saveState(data);
+
+            // Clear inputs & update UI
             document.getElementById('tx-item').value = '';
             document.getElementById('tx-amount').value = '';
-            fetchDashboard();
+            renderDashboard();
         }
 
-        async function deletePurchase(id) {
+        function deletePurchase(id) {
             if (!confirm('Are you sure you want to remove this purchase and restore the funds to your balance?')) {
                 return;
             }
 
-            await fetch('/api/transaction/delete', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ id: id })
-            });
+            const data = loadState();
+            const txIndex = data.transactions.findIndex(tx => tx.id === id);
 
-            fetchDashboard();
+            if (txIndex !== -1) {
+                const tx = data.transactions[txIndex];
+                // Refund money back to proper balance category
+                if (tx.type === 'Basic') {
+                    data.basic_balance += tx.amount;
+                } else {
+                    data.flex_balance += tx.amount;
+                }
+
+                data.transactions.splice(txIndex, 1);
+                saveState(data);
+                renderDashboard();
+            }
         }
 
-        async function saveSettings() {
-            const basic = parseFloat(document.getElementById('cfg-basic').value) || 0;
-            const flex = parseFloat(document.getElementById('cfg-flex').value) || 0;
-            const weekends = document.getElementById('cfg-weekends').checked;
-            const reading = document.getElementById('cfg-reading').checked;
+        function saveSettings() {
+            const data = loadState();
 
-            await fetch('/api/config', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ basic, flex, stay_weekends: weekends, include_reading_week: reading })
-            });
+            data.basic_balance = parseFloat(document.getElementById('cfg-basic').value) || 0;
+            data.flex_balance = parseFloat(document.getElementById('cfg-flex').value) || 0;
+            data.stay_weekends = document.getElementById('cfg-weekends').checked;
+            data.include_reading_week = document.getElementById('cfg-reading').checked;
 
-            fetchDashboard();
+            saveState(data);
+            renderDashboard();
+            alert('Plan settings updated successfully!');
         }
 
-        fetchDashboard();
+        // Initialize dashboard on page load
+        renderDashboard();
     </script>
 </body>
 </html>
